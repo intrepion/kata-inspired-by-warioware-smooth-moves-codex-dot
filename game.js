@@ -25,71 +25,65 @@ function move(dir){if(state!=='play')return;if(game.id==='drag'){game.x=Math.max
 let pointer=null;canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);let r=canvas.getBoundingClientRect();pointer={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height,last:e.clientX};if(game?.id!=='drag'&&game?.id!=='shake'&&game?.id!=='balance'&&game?.id!=='swipe')action()});canvas.addEventListener('pointermove',e=>{if(!pointer||state!=='play')return;let r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,dx=e.clientX-pointer.last;if(game.id==='drag'){game.x=Math.max(80,Math.min(650,x));if(game.x>=600)finish(true)}if(game.id==='shake'&&Math.abs(dx)>15){move(Math.sign(dx));pointer.last=e.clientX}if(game.id==='swipe'&&Math.abs(dx)>25){move(Math.sign(dx));pointer.last=e.clientX}if(game.id==='balance'&&Math.abs(dx)>8){move(Math.sign(dx));pointer.last=e.clientX}});canvas.addEventListener('pointerup',()=>pointer=null);canvas.addEventListener('pointercancel',()=>pointer=null);
 window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight',' ','Enter'].includes(e.key))e.preventDefault();if(e.repeat)return;if(e.key==='ArrowLeft'||e.key==='a'){held.left=true;move(-1)}if(e.key==='ArrowRight'||e.key==='d'){held.right=true;move(1)}if(e.key===' '||e.key==='Enter')action()});window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')held.left=false;if(e.key==='ArrowRight'||e.key==='d')held.right=false});
 $('#left').addEventListener('pointerdown',()=>{held.left=true;move(-1)});$('#right').addEventListener('pointerdown',()=>{held.right=true;move(1)});for(const id of ['left','right'])for(const ev of ['pointerup','pointerleave','pointercancel'])$('#'+id).addEventListener(ev,()=>{held.left=false;held.right=false});$('#action').addEventListener('click',action);$('#start').addEventListener('click',start);$('#sound').addEventListener('click',()=>{sound=!sound;$('#sound').textContent=`♫ SOUND: ${sound?'ON':'OFF'}`});
-// Motion is opt-in: requestPermission must be invoked directly by a button gesture.
-let motionState='off', motionSamples=0, motionBaseline=null, lastShake=-Infinity, motionTimer=null;
-function motionStatus(message){$('#motionStatus').textContent=message}
-function resetMotionCalibration(){motionSamples=0;motionBaseline=null;lastShake=-Infinity}
+// Both permission requests start in the toggle gesture; each sensor can succeed independently.
+let motionEnabled=false, motionGeneration=0, motionState='off', tiltState='off';
+let motionSamples=0, motionBaseline=null, lastShake=-Infinity, motionTimer=null;
+let tiltNeutral=null, tiltAngle=null, tiltValue=0, tiltLast=0, tiltTimer=null;
+function updateMotionUI(){
+ const label={requesting:'requesting permission',waiting:'waiting for sensor',ready:'ready',denied:'permission denied',unavailable:'unavailable',error:'error',off:'off'};
+ const failed=motionEnabled&&['denied','unavailable','error'].includes(motionState)&&['denied','unavailable','error'].includes(tiltState);
+ if(failed)motionEnabled=false;
+ const button=$('#motionToggle');button.setAttribute('aria-pressed',String(motionEnabled));button.textContent=`MOTION CONTROLS: ${motionEnabled?'ON':'OFF'}`;
+ if(failed){$('#motionStatus').textContent=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Swipe, tap ACTION, or use arrows.`;return}
+ if(!motionEnabled){$('#motionStatus').textContent='Shake and tilt are off. Swipe, tap ACTION, or use arrows.';return}
+ $('#motionStatus').textContent=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Hold phone normally to calibrate; swipe, tap ACTION, or use arrows anytime.`;
+}
+function stopMotion(){
+ motionEnabled=false;motionGeneration++;window.removeEventListener('devicemotion',onDeviceMotion);window.removeEventListener('deviceorientation',onDeviceOrientation);
+ if(motionTimer)clearTimeout(motionTimer);if(tiltTimer)clearTimeout(tiltTimer);motionTimer=tiltTimer=null;
+ motionState=tiltState='off';motionSamples=0;motionBaseline=null;lastShake=-Infinity;tiltNeutral=null;tiltValue=0;updateMotionUI();
+}
 function onDeviceMotion(event){
+ if(!motionEnabled)return;
  const valid=v=>v&&[v.x,v.y,v.z].every(Number.isFinite);
  const source=valid(event.accelerationIncludingGravity)?event.accelerationIncludingGravity:event.acceleration;
  if(!valid(source))return;
  if(motionTimer){clearTimeout(motionTimer);motionTimer=null}
- if(motionState!=='ready'){motionState='ready';motionStatus('Phone shake is on; hold still briefly to calibrate. Swipe or tap ACTION also works.')}
+ if(motionState!=='ready'){motionState='ready';updateMotionUI()}
  const sample=[source.x,source.y,source.z];
  if(!motionBaseline){motionBaseline=sample.slice();motionSamples=1;return}
- const delta=sample.map((v,i)=>v-motionBaseline[i]);
- motionBaseline=motionBaseline.map((v,i)=>v*.8+sample[i]*.2);
+ const delta=sample.map((v,i)=>v-motionBaseline[i]);motionBaseline=motionBaseline.map((v,i)=>v*.8+sample[i]*.2);
  if(motionSamples++<8)return;
- const now=performance.now();
- if(Math.hypot(...delta)>4.5 && now-lastShake>=150){lastShake=now;if(state==='play'&&game?.id==='shake')action()}
+ const now=performance.now();if(Math.hypot(...delta)>4.5&&now-lastShake>=150){lastShake=now;if(state==='play'&&game?.id==='shake')action()}
 }
-async function enableMotion(){
- if(['ready','waiting','requesting'].includes(motionState))return;
- if(!window.isSecureContext){motionState='unavailable';motionStatus('Phone shake needs a secure connection. Swipe or tap ACTION.');return}
- if(typeof window.DeviceMotionEvent==='undefined'){motionState='unavailable';motionStatus('Phone motion is not supported here. Swipe or tap ACTION.');return}
- try{
-  motionState='requesting';motionStatus('Requesting phone motion access…');
-  if(typeof window.DeviceMotionEvent.requestPermission==='function'){
-   const permission=await window.DeviceMotionEvent.requestPermission();
-   if(permission!=='granted'){motionState='denied';motionStatus('Motion permission was denied. Swipe or tap ACTION.');return}
-  }
-  resetMotionCalibration();window.removeEventListener('devicemotion',onDeviceMotion);window.addEventListener('devicemotion',onDeviceMotion);
-  motionState='waiting';motionStatus('Waiting for phone motion… Swipe or tap ACTION while we check.');
-  motionTimer=setTimeout(()=>{if(motionState==='waiting'){motionState='unavailable';window.removeEventListener('devicemotion',onDeviceMotion);motionStatus('No motion data received. Swipe or tap ACTION.')}},4000);
- }catch(error){motionState='error';motionStatus('Could not enable phone motion. Swipe or tap ACTION.');}
-}
-$('#motionButton').addEventListener('click',enableMotion);
-// Orientation is enabled only by an explicit button press; the first reading sets neutral.
-let tiltState='off', tiltNeutral=null, tiltAngle=null, tiltValue=0, tiltLast=0, tiltTimer=null;
-function screenAngle(){const value=window.screen?.orientation?.angle ?? window.orientation ?? 0;return ((Number(value)||0)%360+360)%360}
-function tiltStatus(message){$('#tiltStatus').textContent=message}
+function screenAngle(){const value=window.screen?.orientation?.angle??window.orientation??0;return ((Number(value)||0)%360+360)%360}
 function onDeviceOrientation(event){
- if(!Number.isFinite(event.beta)||!Number.isFinite(event.gamma))return;
- const angle=screenAngle(), radians=angle*Math.PI/180;
- const horizontal=event.gamma*Math.cos(radians)+event.beta*Math.sin(radians);
+ if(!motionEnabled||!Number.isFinite(event.beta)||!Number.isFinite(event.gamma))return;
+ const angle=screenAngle(), radians=angle*Math.PI/180, horizontal=event.gamma*Math.cos(radians)+event.beta*Math.sin(radians);
  if(tiltTimer){clearTimeout(tiltTimer);tiltTimer=null}
- if(tiltNeutral===null||angle!==tiltAngle){tiltNeutral=horizontal;tiltAngle=angle;tiltValue=0;tiltState='ready';$('#tiltButton').textContent='RECALIBRATE TILT';tiltStatus('Phone tilt is on. Hold your phone normally and tap recalibrate to reset.');}
- const delta=horizontal-tiltNeutral;
- tiltValue=Math.abs(delta)<3?0:Math.max(-1,Math.min(1,delta/25));
- tiltLast=performance.now();
+ if(tiltNeutral===null||angle!==tiltAngle){tiltNeutral=horizontal;tiltAngle=angle;tiltValue=0;tiltState='ready';updateMotionUI()}
+ const delta=horizontal-tiltNeutral;tiltValue=Math.abs(delta)<3?0:Math.max(-1,Math.min(1,delta/25));tiltLast=performance.now();
 }
-async function enableTilt(){
- if(tiltState==='ready'){tiltNeutral=null;tiltValue=0;tiltStatus('Hold your phone in its neutral position…');return}
- if(['waiting','requesting'].includes(tiltState))return;
- if(!window.isSecureContext){tiltState='unavailable';tiltStatus('Phone tilt needs a secure connection. Use arrows or drag.');return}
- if(typeof window.DeviceOrientationEvent==='undefined'){tiltState='unavailable';tiltStatus('Phone tilt is not supported here. Use arrows or drag.');return}
- try{
-  tiltState='requesting';tiltStatus('Requesting phone tilt access…');
-  if(typeof window.DeviceOrientationEvent.requestPermission==='function'){
-   const permission=await window.DeviceOrientationEvent.requestPermission();
-   if(permission!=='granted'){tiltState='denied';tiltStatus('Phone tilt permission was denied. Use arrows or drag.');return}
-  }
-  tiltNeutral=null;tiltValue=0;window.removeEventListener('deviceorientation',onDeviceOrientation);window.addEventListener('deviceorientation',onDeviceOrientation);
-  tiltState='waiting';tiltStatus('Hold your phone normally while tilt starts…');
-  tiltTimer=setTimeout(()=>{if(tiltState==='waiting'){tiltState='unavailable';window.removeEventListener('deviceorientation',onDeviceOrientation);tiltStatus('No tilt data received. Use arrows or drag.')}},4000);
- }catch(error){tiltState='error';tiltStatus('Could not enable phone tilt. Use arrows or drag.')}
+function requestSensor(api){
+ if(!window.isSecureContext||typeof api==='undefined')return Promise.resolve('unavailable');
+ try{return typeof api.requestPermission==='function'?Promise.resolve(api.requestPermission()).then(p=>p==='granted'?'granted':'denied',()=> 'error'):Promise.resolve('granted')}
+ catch{return Promise.resolve('error')}
 }
-$('#tiltButton').addEventListener('click',enableTilt);
+function startSensor(kind,result,generation){
+ if(!motionEnabled||generation!==motionGeneration)return;
+ const isShake=kind==='shake',eventName=isShake?'devicemotion':'deviceorientation',handler=isShake?onDeviceMotion:onDeviceOrientation;
+ if(result!=='granted'){if(isShake)motionState=result;else tiltState=result;updateMotionUI();return}
+ if(isShake)motionState='waiting';else tiltState='waiting';window.addEventListener(eventName,handler);updateMotionUI();
+ const timer=setTimeout(()=>{if(!motionEnabled||generation!==motionGeneration)return;if((isShake?motionState:tiltState)==='waiting'){window.removeEventListener(eventName,handler);if(isShake)motionState='unavailable';else tiltState='unavailable';updateMotionUI()}},4000);
+ if(isShake)motionTimer=timer;else tiltTimer=timer;
+}
+function toggleMotion(){
+ if(motionEnabled){stopMotion();return}
+ motionEnabled=true;const generation=++motionGeneration;motionState=tiltState='requesting';motionSamples=0;motionBaseline=null;lastShake=-Infinity;tiltNeutral=null;tiltValue=0;updateMotionUI();
+ const shake=requestSensor(window.DeviceMotionEvent),tilt=requestSensor(window.DeviceOrientationEvent);
+ shake.then(result=>startSensor('shake',result,generation));tilt.then(result=>startSensor('tilt',result,generation));
+}
+$('#motionToggle').addEventListener('click',toggleMotion);
 function text(t,x,y,size=40,color='#291638',align='center'){ctx.fillStyle=color;ctx.textAlign=align;ctx.font=`900 ${size}px system-ui`;ctx.fillText(t,x,y)}
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
 function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
