@@ -33,10 +33,13 @@ function updateMotionUI(){
  const label={requesting:'requesting permission',waiting:'waiting for sensor',ready:'ready',denied:'permission denied',unavailable:'unavailable',error:'error',off:'off'};
  const failed=motionEnabled&&['denied','unavailable','error'].includes(motionState)&&['denied','unavailable','error'].includes(tiltState);
  if(failed)motionEnabled=false;
- const button=$('#motionToggle');button.setAttribute('aria-pressed',String(motionEnabled));button.textContent=`MOTION CONTROLS: ${motionEnabled?'ON':'OFF'}`;
- if(failed){$('#motionStatus').textContent=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Swipe, tap ACTION, or use arrows.`;return}
- if(!motionEnabled){$('#motionStatus').textContent='Shake and tilt are off. Swipe, tap ACTION, or use arrows.';return}
- $('#motionStatus').textContent=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Hold phone normally to calibrate; swipe, tap ACTION, or use arrows anytime.`;
+ const buttons=[$('#motionToggle'),$('#motionButton'),$('#tiltButton')].filter(Boolean);
+ for(const button of buttons){button.setAttribute('aria-pressed',String(motionEnabled));button.textContent=`MOTION CONTROLS: ${motionEnabled?'ON':'OFF'}`}
+ let message;
+ if(failed)message=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Swipe, tap ACTION, or use arrows.`;
+ else if(!motionEnabled)message='Shake and tilt are off. Swipe, tap ACTION, or use arrows.';
+ else message=`Shake: ${label[motionState]}. Tilt: ${label[tiltState]}. Hold phone normally to calibrate; swipe, tap ACTION, or use arrows anytime.`;
+ for(const status of [$('#motionStatus'),$('#tiltStatus')].filter(Boolean))status.textContent=message;
 }
 function stopMotion(){
  motionEnabled=false;motionGeneration++;window.removeEventListener('devicemotion',onDeviceMotion);window.removeEventListener('deviceorientation',onDeviceOrientation);
@@ -83,7 +86,7 @@ function toggleMotion(){
  const shake=requestSensor(window.DeviceMotionEvent),tilt=requestSensor(window.DeviceOrientationEvent);
  shake.then(result=>startSensor('shake',result,generation));tilt.then(result=>startSensor('tilt',result,generation));
 }
-$('#motionToggle').addEventListener('click',toggleMotion);
+for(const button of [$('#motionToggle'),$('#motionButton'),$('#tiltButton')].filter(Boolean))button.addEventListener('click',toggleMotion);
 function text(t,x,y,size=40,color='#291638',align='center'){ctx.fillStyle=color;ctx.textAlign=align;ctx.font=`900 ${size}px system-ui`;ctx.fillText(t,x,y)}
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
 function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
