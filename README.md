@@ -14,7 +14,7 @@ Visit http://127.0.0.1:8000/ in a browser. No build or installation is required.
 
 Read the form cue, then complete the task before the timer runs out. You have four chances. The pace increases every seven rounds, and every eighth round is a two-part boss. The ordinary microgames are shuffled; the run continues until all chances are gone.
 
-Use a mouse or finger on the play area, or the on-screen arrow and action buttons. On a keyboard use the left/right arrow keys (or A/D) and Space/Enter. Each form displays its own instructions. Sound can be toggled at the top. No motion sensors or permissions are used.
+Use a mouse or finger on the play area, or the on-screen arrow and action buttons. On a keyboard use the left/right arrow keys (or A/D) and Space/Enter. Each form displays its own instructions. Sound can be toggled at the top. Phone motion is optional: tap **Enable phone shake** and grant permission if prompted. During the shake challenge, shake your phone, swipe back and forth on the game area, alternate the arrow buttons, or tap ACTION repeatedly. Motion availability varies by device and browser; the status message reports permission or sensor problems.
 
 This is a compact interpretation with seven regular microgames and one boss, not a reproduction of the original's hundreds of microgames, physical Wii Remote forms, characters or multiplayer modes. Its graphics are drawn in Canvas 2D; no 3D library is needed for these abstract scenes.
 
