@@ -6,7 +6,7 @@ const forms=[
  {id:'tap',form:'THE POINTER',verb:'POP!',hint:'Tap the balloon · or press Space',icon:'☝'},
  {id:'drag',form:'THE SLIDE',verb:'DELIVER!',hint:'Drag the star to the box · or use ← →',icon:'↔'},
  {id:'shake',form:'THE SHAKE',verb:'SHAKE!',hint:'Shake phone, swipe back and forth, or tap ACTION',icon:'✋'},
- {id:'balance',form:'THE TILT',verb:'BALANCE!',hint:'Keep the ball in the middle · use ← →',icon:'⚖'},
+ {id:'balance',form:'THE TILT',verb:'BALANCE!',hint:'Tilt phone, drag, or use ← → to balance',icon:'⚖'},
  {id:'swipe',form:'THE SWEEP',verb:'SWEEP!',hint:'Swipe across the crumbs · or press Space',icon:'➜'},
  {id:'timing',form:'THE PRESS',verb:'STOP!',hint:'Stop the needle in the green · tap or Space',icon:'✊'},
  {id:'count',form:'THE POKE',verb:'FEED!',hint:'Tap three times · or press Space three times',icon:'☝'}
@@ -59,6 +59,37 @@ async function enableMotion(){
  }catch(error){motionState='error';motionStatus('Could not enable phone motion. Swipe or tap ACTION.');}
 }
 $('#motionButton').addEventListener('click',enableMotion);
+// Orientation is enabled only by an explicit button press; the first reading sets neutral.
+let tiltState='off', tiltNeutral=null, tiltAngle=null, tiltValue=0, tiltLast=0, tiltTimer=null;
+function screenAngle(){const value=window.screen?.orientation?.angle ?? window.orientation ?? 0;return ((Number(value)||0)%360+360)%360}
+function tiltStatus(message){$('#tiltStatus').textContent=message}
+function onDeviceOrientation(event){
+ if(!Number.isFinite(event.beta)||!Number.isFinite(event.gamma))return;
+ const angle=screenAngle(), radians=angle*Math.PI/180;
+ const horizontal=event.gamma*Math.cos(radians)+event.beta*Math.sin(radians);
+ if(tiltTimer){clearTimeout(tiltTimer);tiltTimer=null}
+ if(tiltNeutral===null||angle!==tiltAngle){tiltNeutral=horizontal;tiltAngle=angle;tiltValue=0;tiltState='ready';$('#tiltButton').textContent='RECALIBRATE TILT';tiltStatus('Phone tilt is on. Hold your phone normally and tap recalibrate to reset.');}
+ const delta=horizontal-tiltNeutral;
+ tiltValue=Math.abs(delta)<3?0:Math.max(-1,Math.min(1,delta/25));
+ tiltLast=performance.now();
+}
+async function enableTilt(){
+ if(tiltState==='ready'){tiltNeutral=null;tiltValue=0;tiltStatus('Hold your phone in its neutral position…');return}
+ if(['waiting','requesting'].includes(tiltState))return;
+ if(!window.isSecureContext){tiltState='unavailable';tiltStatus('Phone tilt needs a secure connection. Use arrows or drag.');return}
+ if(typeof window.DeviceOrientationEvent==='undefined'){tiltState='unavailable';tiltStatus('Phone tilt is not supported here. Use arrows or drag.');return}
+ try{
+  tiltState='requesting';tiltStatus('Requesting phone tilt access…');
+  if(typeof window.DeviceOrientationEvent.requestPermission==='function'){
+   const permission=await window.DeviceOrientationEvent.requestPermission();
+   if(permission!=='granted'){tiltState='denied';tiltStatus('Phone tilt permission was denied. Use arrows or drag.');return}
+  }
+  tiltNeutral=null;tiltValue=0;window.removeEventListener('deviceorientation',onDeviceOrientation);window.addEventListener('deviceorientation',onDeviceOrientation);
+  tiltState='waiting';tiltStatus('Hold your phone normally while tilt starts…');
+  tiltTimer=setTimeout(()=>{if(tiltState==='waiting'){tiltState='unavailable';window.removeEventListener('deviceorientation',onDeviceOrientation);tiltStatus('No tilt data received. Use arrows or drag.')}},4000);
+ }catch(error){tiltState='error';tiltStatus('Could not enable phone tilt. Use arrows or drag.')}
+}
+$('#tiltButton').addEventListener('click',enableTilt);
 function text(t,x,y,size=40,color='#291638',align='center'){ctx.fillStyle=color;ctx.textAlign=align;ctx.font=`900 ${size}px system-ui`;ctx.fillText(t,x,y)}
 function circle(x,y,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
 function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
@@ -66,7 +97,7 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min((now-last)/1000
 if(game.id==='tap'){circle(400,270,105,'#e95557');circle(370,240,14,'#ffb5ab');ctx.strokeStyle='#43304a';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(400,375);ctx.quadraticCurveTo(440,410,400,470);ctx.stroke();text('POP ME',400,285,23,'#fff')}
 if(game.id==='drag'){rect(590,240,140,130,'#76479a');rect(605,220,110,30,'#573369');text('BOX',660,320,20,'#fff');text('★',game.x,330,115,'#f75f49');text('→ → →',390,300,35,'#704c67')}
 if(game.id==='shake'){ctx.save();ctx.translate(400+Math.sin(game.elapsed*12)*game.progress*3,275);ctx.rotate(Math.sin(game.elapsed*10)*.1);rect(-58,-100,116,200,'#f8eee0');rect(-65,-120,130,35,'#6b3b83');text('✦',0,25,70,'#e55a4e');ctx.restore();text('SHAKES '+game.progress+'/6',400,430,22)}
-if(game.id==='balance'){game.vel+=(held.left?-1:0)*dt*5+(held.right?1:0)*dt*5;game.vel+=game.ball*dt*.018;game.vel*=.99;game.ball+=game.vel*dt*40;game.ball=Math.max(-250,Math.min(250,game.ball));rect(180,320,440,20,'#694277');rect(325,317,150,26,'#8acb73');circle(400+game.ball,285,35,'#f05f4e');text('KEEP IT IN THE GREEN!',400,415,20)}
+if(game.id==='balance'){game.vel+=(held.left?-1:0)*dt*5+(held.right?1:0)*dt*5; if(tiltState==='ready'&&now-tiltLast<1000)game.vel+=tiltValue*dt*5;game.vel+=game.ball*dt*.018;game.vel*=.99;game.ball+=game.vel*dt*40;game.ball=Math.max(-250,Math.min(250,game.ball));rect(180,320,440,20,'#694277');rect(325,317,150,26,'#8acb73');circle(400+game.ball,285,35,'#f05f4e');text('KEEP IT IN THE GREEN!',400,415,20)}
 if(game.id==='swipe'){for(let i=0;i<3;i++){if(i>=game.progress)text('✦',230+i*170,305,95,'#ce644a');else text('✓',230+i*170,305,80,'#4c8b66')}text('TAP 3 TIMES / SWIPE WITH ARROWS',400,415,17)}
 if(game.id==='count'){circle(400,275,115,'#ffe4b1');circle(365,245,10,'#3c2440');circle(435,245,10,'#3c2440');ctx.fillStyle='#3c2440';ctx.beginPath();ctx.ellipse(400,310,50,25+game.progress*8,0,0,Math.PI*2);ctx.fill();text('SNACKS '+game.progress+'/3',400,430,22)}
 if(game.id==='timing'||(game.id==='boss'&&game.stage===1)){rect(180,250,440,50,'#ed6f5c');rect(350,250,100,50,'#77c879');let x=400+Math.sin(game.elapsed*2.5)*210;rect(x-5,225,10,100,'#2b193c');text('STOP IN THE GREEN!',400,385,22)}
