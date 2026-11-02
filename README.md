@@ -23,3 +23,7 @@ This is a compact interpretation with seven regular microgames and one boss, not
 Game design and original assets created for this kata. The OS ignore patterns are from GitHub's [Linux](https://github.com/github/gitignore/blob/main/Global/Linux.gitignore), [Windows](https://github.com/github/gitignore/blob/main/Global/Windows.gitignore), and [macOS](https://github.com/github/gitignore/blob/main/Global/macOS.gitignore) global templates (CC0). Research: [Nintendo's description](https://www.nintendo.com/en-gb/Games/Wii/WarioWare-Smooth-Moves-283850.html).
 
 MIT licensed; see LICENSE.
+
+## Arcade metadata
+
+See [docs/arcade-metadata.md](docs/arcade-metadata.md) for the game-owned manifest and screenshot provenance.
