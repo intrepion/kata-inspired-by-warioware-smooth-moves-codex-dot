@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "workflowCommit": "22ac7e521581161d4b728c10530f0fc2e69f3425",
+  "sourceCommit": "5c9082e484823e56ac4330505f5a0f57a3360a95",
+  "runId": "41395215989",
+  "url": "http://127.0.0.1:4201/",
+  "inputs": {
+    "index.html": "11615d31596fc075f79d6179cc1fab7091f7b2b68c13f7b30154fee21a9c7bd1",
+    "style.css": "a30fb101de36aba6018f259e02f68fb40d81bd1703833497debe17aaf8207338",
+    "game.js": "08bd9f9aabf32a85c1b2d78b977ebc17adf0f072402be7f3b4cbd5e1b0aba896"
+  },
+  "browser": "153.0.8010.12",
+  "viewport": {
+    "width": 1280,
+    "height": 1000
+  },
+  "screenshots": [
+    "wiggle-01.png",
+    "wiggle-02.png"
+  ]
+}

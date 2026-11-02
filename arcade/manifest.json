@@ -1,6 +1,47 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gameId": "kata-inspired-by-warioware-smooth-moves-codex-dot",
   "playUrl": "https://intrepion.github.io/kata-inspired-by-warioware-smooth-moves-codex-dot/",
-  "screenshots": []
+  "screenshots": [
+    {
+      "path": "arcade/screenshots/ci-20261102-01.jpg",
+      "sha256": "ae59fd1358210da2e305989e4619db01d989ce327323905656ae68b319f7e2b3",
+      "alt": "Wiggle Ritual gameplay, view 1",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-01.png",
+        "sourceSha256": "34e5fb30e5623c0fe782fff0b0138ce8928d2289a6676f08563a48debde06d6d",
+        "captureCommit": "5c9082e484823e56ac4330505f5a0f57a3360a95",
+        "workflowRunId": "41395215989",
+        "inputHashes": {
+          "index.html": "11615d31596fc075f79d6179cc1fab7091f7b2b68c13f7b30154fee21a9c7bd1",
+          "style.css": "a30fb101de36aba6018f259e02f68fb40d81bd1703833497debe17aaf8207338",
+          "game.js": "08bd9f9aabf32a85c1b2d78b977ebc17adf0f072402be7f3b4cbd5e1b0aba896"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "bc5a57bbc6e6cd8be85518e07717ebc01ae7a8cfc0f7d123cb139acb5991310c"
+      }
+    },
+    {
+      "path": "arcade/screenshots/ci-20261102-02.jpg",
+      "sha256": "9d60fba407e22eb11ae6d8654117acbaeadb8a624d2302327be1447f43433194",
+      "alt": "Wiggle Ritual gameplay, view 2",
+      "provenance": {
+        "kind": "ci_gameplay_capture",
+        "sourcePath": "arcade/capture-evidence/ci-20261102-02.png",
+        "sourceSha256": "d9dbef600908ae9a7ce0cb794efe16f1c032cc9c683f267308cc2ebaacdf2d4a",
+        "captureCommit": "5c9082e484823e56ac4330505f5a0f57a3360a95",
+        "workflowRunId": "41395215989",
+        "inputHashes": {
+          "index.html": "11615d31596fc075f79d6179cc1fab7091f7b2b68c13f7b30154fee21a9c7bd1",
+          "style.css": "a30fb101de36aba6018f259e02f68fb40d81bd1703833497debe17aaf8207338",
+          "game.js": "08bd9f9aabf32a85c1b2d78b977ebc17adf0f072402be7f3b4cbd5e1b0aba896"
+        },
+        "publishedFilesVerifiedAt": "2026-11-02T19:01:20Z",
+        "captureRecordPath": "arcade/capture-evidence/ci-20261102-record.json",
+        "captureRecordSha256": "bc5a57bbc6e6cd8be85518e07717ebc01ae7a8cfc0f7d123cb139acb5991310c"
+      }
+    }
+  ]
 }
